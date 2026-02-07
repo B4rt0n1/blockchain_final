@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Decentralized Kickstarter</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top__left">
+      <h1 class="top__title">Decentralized Kickstarter</h1>
+      <div class="top__meta">
+        <span id="netBadge" class="badge">Network: -</span>
+        <span id="addrBadge" class="badge">Wallet: -</span>
+      </div>
+    </div>
+
+    <div class="top__right">
+      <button id="btnConnect" class="btn btn--primary">Connect MetaMask</button>
+      <button id="btnSwitch" class="btn btn--ghost">Switch to Sepolia</button>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="card">
+      <h2>Balance</h2>
+      <div class="row">
+        <div>ETH:</div><div id="ethBal">-</div>
+      </div>
+      <div class="row">
+        <div>RewardToken (CRWD):</div><div id="tokenBal">-</div>
+      </div>
+      <div id="status" class="status">Status: ready</div>
+    </section>
+
+    <section class="card">
+      <h2>Create Campaign</h2>
+      <div class="form">
+        <label>Title</label>
+        <input id="cTitle" placeholder="E.g. New Laptop for Study" />
+
+        <label>Goal (ETH)</label>
+        <input id="cGoal" type="number" step="0.0001" placeholder="E.g. 0.5" />
+
+        <label>Duration (seconds)</label>
+        <input id="cDur" type="number" placeholder="E.g. 300 (5 minutes)" />
+
+        <button id="btnCreate" class="btn btn--primary">Create Campaign</button>
+      </div>
+    </section>
+
+    <section class="card card--full">
+      <h2>Campaigns</h2>
+      <div class="hint">
+        Kickstarter Logic: if <b>goal is reached</b> → finalization transfers ETH to owner, contributors claim tokens via <b>Claim</b>.
+        If <b>goal is not reached</b> → contributors can make a <b>Refund</b>.
+      </div>
+      <div id="campaignList" class="list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.16.0/dist/ethers.umd.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
