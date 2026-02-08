@@ -1,0 +1,6 @@
+{
+  "network": "sepolia",
+  "chainId": "0xaa36a7",
+  "crowdfundingAddress": "0x71515D4b555efdC696Ee9372b3E734D586bD8Fb4",
+  "rewardTokenAddress": "0x3D4e6CC199b4A75550C872a2E8Fb81F77626E166"
+}
