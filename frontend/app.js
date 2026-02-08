@@ -153,7 +153,7 @@ async function renderCampaigns() {
   const count = await crowdfunding.campaignCount();
 
   if (Number(count) === 0) {
-    listEl.innerHTML = `<div class="hint">Пока кампаний нет. Создай первую.</div>`;
+    listEl.innerHTML = `<div class="hint">No campaigns yet.</div>`;
     return;
   }
 
@@ -209,7 +209,7 @@ async function renderCampaigns() {
         if (act === "contribute") {
           const input = document.getElementById(`amt-${id}`);
           const ethAmount = input.value;
-          if (!ethAmount || Number(ethAmount) <= 0) return alert("Введите сумму ETH > 0");
+          if (!ethAmount || Number(ethAmount) <= 0) return alert("Please enter ETH amount > 0");
 
           setStatus(`Contributing to #${id}...`);
           const tx = await crowdfunding.contribute(id, { value: ethers.parseEther(ethAmount) });
@@ -258,9 +258,9 @@ async function createCampaign() {
   const goal = cGoal.value;
   const dur  = cDur.value;
 
-  if (!title) return alert("Title пустой");
-  if (!goal || Number(goal) <= 0) return alert("Goal должен быть > 0");
-  if (!dur  || Number(dur) <= 0) return alert("Duration должен быть > 0");
+  if (!title) return alert("Title is required");
+  if (!goal || Number(goal) <= 0) return alert("Goal must be > 0");
+  if (!dur  || Number(dur) <= 0) return alert("Duration must be > 0");
 
   try {
     setStatus("Creating campaign...");

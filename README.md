@@ -1,57 +1,179 @@
-# Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
 
-This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.
-
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+# All-or-Nothing Model Kickstarter DApp
 
 ## Project Overview
 
-This example project includes:
+Campaigns either succeed and release funds to the creator **with token rewards issued to contributors**, or fail and allow contributors to **refund their ETH**.
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+---
 
-## Usage
+## Core Logic of All-or-Nothing
 
-### Running Tests
+* If a campaign **reaches its funding goal before the deadline**:
 
-To run all the tests in the project, execute the following command:
+  * The campaign is marked as **successful**
+  * All raised test ETH is transferred to the campaign creator
+  * Contributors can **claim ERC-20 reward tokens**
+* If a campaign **does not reach its goal**:
 
-```shell
-npx hardhat test
+  * The campaign is marked as **failed**
+  * Contributors can **refund their full contribution**
+  * No reward tokens can be claimed
+
+---
+
+## System Entities
+
+### Campaign
+
+Represents a crowdfunding campaign.
+
+* `title` – campaign name
+* `owner` – creator address
+* `goal` – funding target (in wei)
+* `deadline` – UNIX timestamp
+* `totalRaised` – total contributed ETH
+* `finalized` – whether the campaign is finalized
+* `successful` – outcome of the campaign
+
+### Contributions
+
+Tracks how much ETH each user contributed to a specific campaign:
+
+```
+contributions[campaignId][contributor]
 ```
 
-You can also selectively run the Solidity or `mocha` tests:
+### RewardToken
 
-```shell
-npx hardhat test solidity
-npx hardhat test mocha
+A custom ERC-20 token used as an **internal reward system**:
+
+* Minted only for successful campaigns
+* Minting rights restricted to the crowdfunding contract
+
+---
+
+## Reward Model
+
+Rewards are calculated **proportionally** to the contribution:
+
+```
+TOKENS_PER_ETH = 1000
+reward = contributedETH × 1000
 ```
 
-### Make a deployment to Sepolia
+Example:
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+* Contribution: `0.2 ETH`
+* Reward: `200 tokens`
 
-To run the deployment to a local chain:
+Rewards are stored as **pending rewards** and are minted only when claimed.
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+---
+
+## Application Workflow
+
+### 1. Campaign Creation (Creator)
+
+The creator calls:
+
+```
+createCampaign(title, goal, duration)
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+The contract:
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+* Stores campaign data
+* Assigns a unique campaign ID
+* Emits a `CampaignCreated` event
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+---
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+### 2. Contributing to a Campaign (Backer)
+
+The contributor calls:
+
+```
+contribute(campaignId)
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+The contract:
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+* Verifies the campaign is active and not finalized
+* Records the contribution
+* Updates the total raised amount
+* Calculates and stores pending reward tokens
+
+---
+
+### 3. Campaign Finalization
+
+After the deadline, **any user** can call:
+
 ```
+finalizeCampaign(campaignId)
+```
+
+The contract:
+
+* Checks whether the funding goal was reached
+* If successful:
+
+  * Transfers all ETH to the campaign owner
+* If failed:
+
+  * Locks funds for refunds
+
+No reward tokens are minted during finalization to avoid gas-expensive loops.
+
+---
+
+### 4. Claiming Rewards (Successful Campaigns)
+
+For successful campaigns, contributors call:
+
+```
+claimReward(campaignId)
+```
+
+The contract:
+
+* Reads the contributor’s pending reward
+* Resets it to zero
+* Mints ERC-20 tokens directly to the contributor’s address
+
+Minting is restricted so that **only the crowdfunding contract** can mint tokens.
+
+---
+
+### 5. Refunds (Failed Campaigns)
+
+If a campaign fails, contributors can call:
+
+```
+refund(campaignId)
+```
+
+The contract:
+
+* Returns the contributor’s ETH
+* Resets contribution data
+* Clears pending rewards to prevent token abuse
+
+---
+
+## Why Rewards Use `claimReward()` Instead of Automatic Distribution
+
+Automatically minting tokens to all contributors during finalization would require:
+
+* Storing a list of all contributors
+* Iterating through them in a loop
+
+This approach is unsafe due to **Ethereum gas limits** and could cause transactions to fail.
+
+Using `claimReward()`:
+
+* Avoids gas-limit issues
+* Makes reward claiming optional
+* Ensures each user pays gas only for their own transaction
+
